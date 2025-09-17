@@ -51,3 +51,27 @@ while (i<=100000) {
 
 print(mean(muA))
 print(mean(muB))
+
+library(tseries)
+library(quantmod)
+symbols = c("SP500")
+getSymbols(symbols, src = "FRED")
+class(SP500)
+head(SP500)
+
+# XTS object
+set.seed(12345)
+dates = as.Date("2020-01-01") + 0:9
+values = rnorm(10)
+xts_data = xts(values, order.by = dates)
+head(xts_data)
+class(xts_data)
+
+sp = coredata(SP500)
+n = nrow(sp)
+j = 1
+ra.sp=NULL
+while (j+252<=n) {
+  ra.sp = c(ra.sp, (sp[j+252]-sp[j])/sp[j])
+  j = j + 1
+}
