@@ -75,3 +75,40 @@ while (j+252<=n) {
   ra.sp = c(ra.sp, (sp[j+252]-sp[j])/sp[j])
   j = j + 1
 }
+
+quantile(ra.sp, prob=c(0.05,0.5,0.95),na.rm=T)
+hist(ra.sp,na.rm=T)
+print(ra.sp)
+
+
+# Optional Stuff
+# A new strategy: buy-and-hold-until-return-being-at-least-10percent
+# Distribution of duration 
+sp = coredata(SP500)
+n = nrow(sp)
+j = 1
+r.du=NULL
+while (j+252<=n) {
+  return = (sp[(j+1):length(sp)] - sp[j])/sp[j]
+  r.du = c(r.du,which(return>0.1)[1])
+  j = j + 1
+}
+r.du
+quantile(r.du, prob=c(0.05,0.5,0.95),na.rm=T)
+
+j = 1177
+return = (sp[(j+1):length(sp)] - sp[j])/sp[j]
+return
+
+j = 51
+return = (sp[(j+1):length(sp)] - sp[j])/sp[j]
+return
+
+
+# check dates of missing values
+index(SP500[is.na(SP500)])
+
+# lag price and daily return
+SP500$lag = lag(SP500, k=1)
+SP500$dailyreturn = (SP500$SP500-SP500$lag)/SP500$lag
+head(SP500)
