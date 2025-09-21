@@ -1,0 +1,73 @@
+---
+title: "ECO 420Y — Homework 1"
+author: "Joe White"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+geometry: margin=1in
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+set.seed(12345)
+```
+
+# Question 1
+
+```{r q1}
+#============================ Question 1 =======================================
+## Pay 2 dollars to roll three dice. The casino pays 5 if sum=10, else pays 1.
+
+set.seed(123)
+
+i = 1
+return = rep(-1,100000)
+
+while (i <= 100000) {
+  die1 = sample(1:6,1)
+  die2 = sample(1:6,1)
+  die3 = sample(1:6,1)
+  if ((die1+die2+die3)==10) return[i] = 3
+  i = i+1
+}
+
+print(mean(return))
+print(var(return))
+
+```
+
+# Question 2 
+
+```{r q2, message=FALSE, warning=FALSE}
+#============================ Question 2 =======================================
+## Simulate 95% CI for 5-year buy-hold-sell returns on SP500
+
+library(tseries)
+library(quantmod)
+
+symbols = c("SP500")
+getSymbols(symbols, src="FRED")
+
+sp = coredata(SP500)
+n = nrow(sp)
+j = 1
+ra_sp = NULL
+
+while (j + 252*5 <= n) {
+  ra_sp = c(ra_sp, (sp[j+252*5] - sp[j]) / sp[j])
+  j = j + 1
+}
+
+quantile(ra_sp, probs = c(0.025,0.975), na.rm=TRUE)
+
+```
+
+# Histogram
+
+```{r hist, fig.width=6, fig.height=4}
+hist(ra_sp, breaks = 50,
+     main = "Distribution of 5-year SP500 Returns",
+     xlab = "5-year return")
+```
