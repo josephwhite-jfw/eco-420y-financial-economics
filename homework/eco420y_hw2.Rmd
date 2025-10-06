@@ -1,0 +1,74 @@
+---
+title: "ECO 420Y - Homework 2"
+author: "Joe White"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+geometry: margin=1in
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Question 1 — Solve \(110x^3 + 10x^2 + 10x - 95 = 0\) by Bisection
+
+```{r q1-bisection}
+d = function(x) { return(110*x^3 + 10*x^2 + 10*x - 95) }
+i = 0; smallx = 0; bigx = 1
+while (i < 30) {
+  root = (smallx + bigx)/2
+  if (d(root) * d(bigx) >= 0) { bigx = root } else { smallx = root }
+  cat("--------------------------", "\n")
+  cat("Root is ", root, "\n")
+  cat("d(root) is ", d(root), "\n")
+  i = i + 1
+}
+```
+
+## Plot
+```{r q1-plot, fig.width=6, fig.height=4}
+curve(110*x^3 + 10*x^2 + 10*x - 95, from = 0, to = 1,
+      n = 1000, lwd = 2, col = "black",
+      xlab = "x", ylab = "110 x^3 + 10 x^2 + 10 x - 95",
+      )
+abline(h = 0, lty = 2)
+abline(v = root, col = "gray40", lty = 3)
+points(root, 0, pch = 19)
+```
+
+# Question 2 — Maximize \(-x^2 + \log x\) using Newtons Method
+
+```{r q2-newton}
+f = function(x) { return(-x^2 + log(x)) }
+fprime = function(x) { return(-2*x + 1/x) }
+fprime2 = function(x) { return(-2 - 1/x^2) }
+tol = 0.001
+x0 = 1
+while (abs(fprime(x0)) > tol) {
+  step = - fprime(x0) / fprime2(x0)
+  x1 = x0 + step
+  while ((x1 <= 0) || (f(x1) <= f(x0))) {
+    step = step/10
+    x1 = x0 + step
+  }
+  cat("---------------------------", "\n")
+  cat("New value is ", x1, "\n")
+  cat("Gradient is ", fprime(x1), "\n")
+  cat("f(x) is ", f(x1), "\n")
+  x0 = x1
+}
+```
+
+## Plot
+```{r q2-plot, fig.width=6, fig.height=4}
+x_star = x0
+curve(-x^2 + log(x), from = 0.1, to = 2,
+      n = 1000, lwd = 2, col = "black",
+      xlab = "x", ylab = "f(x) = -x^2 + log(x)"
+      )
+abline(v = x_star, col = "gray40", lty = 3)
+points(x_star, f(x_star), pch = 19)
+```
