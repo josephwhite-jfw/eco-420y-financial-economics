@@ -1,0 +1,48 @@
+---
+title: "ECO 420Y - Homework 3"
+author: "Joe White"
+date: "`r format(Sys.Date())`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+geometry: margin=1in
+fontsize: 11pt
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+# Question 1
+
+\[
+\min_{x_1,x_2} \; -8x_1 -16x_2 + x_1^2 + 4x_2^2
+\]
+subject to
+\[
+x_1 + x_2 \le 5,\quad x_1 \le 3,\quad x_1 \ge 0,\quad x_2 \ge 0.
+\]
+
+```{r q1-qp, echo=TRUE}
+library(quadprog)
+
+# objective: min -8x1 -16x2 + x1^2 + 4x2^2
+Dmat <- matrix(c(2,0,
+                 0,8), 2, 2, byrow = T)
+dvec <- c(8,16)
+
+# constraints
+Amat <- t(matrix(c(-1,-1,
+                   -1, 0,
+                    1, 0,
+                    0, 1), 4, 2, byrow = T))
+bvec <- c(-5,-3,0,0)
+
+sol  <- solve.QP(Dmat, dvec, Amat, bvec)
+
+xopt <- sol$solution
+f    <- function(x) -8*x[1] -16*x[2] + x[1]^2 + 4*x[2]^2
+
+cat("x* =", paste(xopt, collapse = ", "), "\n")
+cat("f(x*) =", f(xopt), "\n")
+```
