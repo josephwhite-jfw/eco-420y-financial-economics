@@ -1,5 +1,5 @@
 ---
-title: "TWFE Sensitivity Models — Raw Summaries"
+title: "ECO 420Y — Homework 4"
 author: "Joe White"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -7,133 +7,111 @@ output:
     latex_engine: xelatex
     toc: false
     number_sections: false
+  html_document:
+    toc: false
+    df_print: paged
 fontsize: 11pt
 geometry: margin=1in
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
-options(scipen = 999, digits = 3, fixest_nthreads = 4)
-
-suppressPackageStartupMessages({
-  library(fixest)
-  library(dplyr)
-  library(readr)
-})
+knitr::opts_chunk$set(
+  echo = TRUE,
+  message = TRUE,
+  warning = FALSE,
+  fig.width = 7,
+  fig.height = 4.5
+)
 ```
 
-```{r sensitivity-raw-summaries, results='asis'}
-# ===== Load Data =====
-panel_fp <- "C:/Repositories/white-bowblis-nhmc/data/clean/panel.csv"
+```{r codes, results='asis'}
+library(tseries)
 
-need <- c(
-  "cms_certification_number","year_month",
-  "anticipation1","anticipation2","post",
-  "rn_hppd","lpn_hppd","cna_hppd","total_hppd",
-  "government","non_profit","chain","beds",
-  "occupancy_rate","pct_medicare","pct_medicaid",
-  "cm_q_state_2","cm_q_state_3","cm_q_state_4"
-)
+miu1 = 5;  s1 = 4
+miu2 = 8;  s2 = 5
+miu3 = 7;  s3 = 4.5
+miuv = c(miu1, miu2, miu3)
 
-df <- read_csv(panel_fp, show_col_types = FALSE, col_select = all_of(need)) %>%
-  mutate(
-    cms_certification_number = as.factor(cms_certification_number),
-    year_month = as.factor(year_month),
-    ym_date = as.Date(paste0(gsub("/", "-", as.character(year_month)), "-01"))
-  )
+targetmiu = seq(5, 8, 0.10)
 
-# ===== Log outcomes =====
-mk_log <- function(x) ifelse(x > 0, log(x), NA_real_)
-df <- df %>%
-  mutate(
-    ln_rn    = mk_log(rn_hppd),
-    ln_lpn   = mk_log(lpn_hppd),
-    ln_cna   = mk_log(cna_hppd),
-    ln_total = mk_log(total_hppd)
-  )
+# ---- OLD frontier ----
+rho12 = -0.5; rho13 = -0.3; rho23 = 0.4
+s12 = rho12 * s1 * s2
+s13 = rho13 * s1 * s3
+s23 = rho23 * s2 * s3
+sigma_old = matrix(c(s1^2, s12,  s13,
+                     s12,  s2^2, s23,
+                     s13,  s23,  s3^2),
+                   nrow = 3, ncol = 3, byrow = TRUE)
 
-# ===== Regression spec =====
-controls <- paste(
-  "government + non_profit + chain + beds +",
-  "occupancy_rate + pct_medicare + pct_medicaid +",
-  "cm_q_state_2 + cm_q_state_3 + cm_q_state_4"
-)
-rhs <- paste("post +", controls, "| cms_certification_number + year_month")
-make_fml <- function(lhs) as.formula(paste(lhs, "~", rhs))
-vc <- ~ cms_certification_number + year_month
-
-# ===== Scenario setup =====
-baseline_chain <- df %>%
-  filter(ym_date >= as.Date("2017-01-01"), ym_date <= as.Date("2017-03-31")) %>%
-  arrange(cms_certification_number, ym_date) %>%
-  group_by(cms_certification_number) %>%
-  summarise(baseline_chain_2017Q1 = first(chain), .groups = "drop")
-
-df_bc <- df %>% left_join(baseline_chain, by = "cms_certification_number")
-
-SCENARIOS <- list(
-  "Pre-pandemic (2017–2019)" = df %>% filter(ym_date >= as.Date("2017-01-01"), ym_date <= as.Date("2019-12-31")),
-  "Pandemic (2020Q2–2024Q2)" = df %>% filter(ym_date >= as.Date("2020-04-01"), ym_date <= as.Date("2024-06-30")),
-  "For-profit only"          = df %>% filter(government == 0, non_profit == 0),
-  "Chain in 2017Q1"          = df_bc %>% filter(!is.na(baseline_chain_2017Q1), baseline_chain_2017Q1 == 1),
-  "Non-chain in 2017Q1"      = df_bc %>% filter(!is.na(baseline_chain_2017Q1), baseline_chain_2017Q1 == 0)
-)
-
-SAMPLES <- list(
-  "With anticipation (full sample)" = function(d) d,
-  "Without anticipation I (anticipation1==0)"  = function(d) d %>% filter(anticipation1 == 0),
-  "Without anticipation II (anticipation2==0)" = function(d) d %>% filter(anticipation2 == 0)
-)
-
-OUTS <- list(
-  "RN (level)"    = "rn_hppd",
-  "LPN (level)"   = "lpn_hppd",
-  "CNA (level)"   = "cna_hppd",
-  "Total (level)" = "total_hppd",
-  "Log RN"        = "ln_rn",
-  "Log LPN"       = "ln_lpn",
-  "Log CNA"       = "ln_cna",
-  "Log Total"     = "ln_total"
-)
-
-# ===== Run Models =====
-for (sc in names(SCENARIOS)) {
-  cat(paste0("## Scenario: ", sc, "
-
-"))
-  d_sc <- SCENARIOS[[sc]]
-
-  for (sn in names(SAMPLES)) {
-    cat(paste0("### Sample: ", sn, "
-
-"))
-    d_s <- SAMPLES[[sn]](d_sc)
-    if (!nrow(d_s)) {
-      cat("No data available in this sample.
-
-")
-      next
-    }
-
-    for (on in names(OUTS)) {
-      lhs <- OUTS[[on]]
-      if (all(is.na(d_s[[lhs]]))) next
-
-      cat(paste0("#### Outcome: ", on, "
-
-"))
-      fml <- make_fml(lhs)
-      m <- feols(fml, data = d_s, vcov = vc, lean = TRUE)
-
-      # Capture and print inside a code block to protect LaTeX from underscores, %, etc.
-      out <- capture.output(summary(m))
-      cat("```
-", paste(out, collapse = "
-"), "
-```
-
-", sep = "")
-    }
-  }
+sigp_old = rep(0, length(targetmiu))
+w_old = vector("list", length(targetmiu))
+for (i in 1:length(targetmiu)) {
+  op = portfolio.optim(t(miuv), pm = targetmiu[i], covmat = sigma_old)
+  sigp_old[i] = sqrt(t(op$pw) %*% sigma_old %*% op$pw)
+  w_old[[i]] = op$pw
 }
+
+idx_old = which.min(sigp_old)
+gmvp_mu_old  = targetmiu[idx_old]
+gmvp_sig_old = sigp_old[idx_old]
+gmvp_w_old   = w_old[[idx_old]]
+
+cat("=== OLD correlations (rho12=-0.5, rho13=-0.3, rho23=0.4) ===\n")
+cat(sprintf("GMVP: mu = %.3f, sigma = %.3f\n", gmvp_mu_old, gmvp_sig_old))
+cat(sprintf("weights: w1 = %.3f, w2 = %.3f, w3 = %.3f\n\n",
+            gmvp_w_old[1], gmvp_w_old[2], gmvp_w_old[3]))
+
+# ---- NEW frontier ----
+rho12 = 0.5; rho13 = 0.3; rho23 = 0.4
+s12 = rho12 * s1 * s2
+s13 = rho13 * s1 * s3
+s23 = rho23 * s2 * s3
+sigma_new = matrix(c(s1^2, s12,  s13,
+                     s12,  s2^2, s23,
+                     s13,  s23,  s3^2),
+                   nrow = 3, ncol = 3, byrow = TRUE)
+
+sigp_new = rep(0, length(targetmiu))
+w_new = vector("list", length(targetmiu))
+for (i in 1:length(targetmiu)) {
+  op = portfolio.optim(t(miuv), pm = targetmiu[i], covmat = sigma_new)
+  sigp_new[i] = sqrt(t(op$pw) %*% sigma_new %*% op$pw)
+  w_new[[i]] = op$pw
+}
+
+idx_new = which.min(sigp_new)
+gmvp_mu_new  = targetmiu[idx_new]
+gmvp_sig_new = sigp_new[idx_new]
+gmvp_w_new   = w_new[[idx_new]]
+
+cat("=== NEW correlations (rho12=0.5, rho13=0.3, rho23=0.4) ===\n")
+cat(sprintf("GMVP: mu = %.3f, sigma = %.3f\n", gmvp_mu_new, gmvp_sig_new))
+cat(sprintf("weights: w1 = %.3f, w2 = %.3f, w3 = %.3f\n\n",
+            gmvp_w_new[1], gmvp_w_new[2], gmvp_w_new[3]))
+
+# ---- Plot ----
+plot(sigp_old, targetmiu, type = "l", lwd = 2,
+     xlab = "sigmap", ylab = "mup",
+     main = "Efficient Frontiers (Old vs New Correlations)",
+     col = "blue")
+lines(sigp_new, targetmiu, lwd = 2, col = "red")
+points(gmvp_sig_old, gmvp_mu_old, pch = 19, col = "blue")
+points(gmvp_sig_new, gmvp_mu_new, pch = 19, col = "red")
+legend("bottomright",
+       legend = c("Old frontier", "New frontier", "Old GMVP", "New GMVP"),
+       lty = c(1,1,NA,NA), pch = c(NA,NA,19,19),
+       col = c("blue","red","blue","red"),
+       bty = "n", lwd = c(2,2,NA,NA))
 ```
+
+# Comments and Intuition
+
+- With the old correlations (negative between 1–2 and 1–3), the frontier is farther left and the GMVP risk is lower.
+- With new correlations (all positive), the frontier shifts rightward and the GMVP has higher σ.
+
+For weights \(w\),
+\[
+\sigma_p^2=\sum_i w_i^2\sigma_i^2+\sum_{i\ne j} w_i w_j\,\rho_{ij}\sigma_i\sigma_j.
+\]
+Negative \(\rho_{ij}\) make cross terms reduce variance (offsetting moves → strong diversification). Positive \(\rho_{ij}\) make them add variance (assets move together → weaker diversification). Hence higher/more-positive correlations mean less diversification, a rightward shifted frontier, and a riskier GMVP.
