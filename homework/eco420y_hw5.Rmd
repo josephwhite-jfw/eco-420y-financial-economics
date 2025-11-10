@@ -1,5 +1,5 @@
 ---
-title: "ECO 420Y — HW5 (CAPM & SML)"
+title: "ECO 420Y — Homework 5"
 author: "Joe White"
 date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output:
@@ -11,19 +11,16 @@ fontsize: 11pt
 geometry: margin=1in
 ---
 
-# Problem
+# Questions
 **Given:** risk-free rate \(r_f=3\%\), market expected return \(E[R_m]=9\%\), stock beta \(\beta=1.2\).  
 1) Compute the expected return by CAPM.  
 2) If actual return is 8\%, does it under/over-perform? By how much?  
-3) Compute alpha and **plot/label** the stock on the SML.
+3) Compute alpha and plot the stock on the SML.
 
----
-
-# Hand Calculation (formulas)
+# Answers
 CAPM: \(E[R_i]=r_f+\beta\,(E[R_m]-r_f)\).  
 Alpha: \(\alpha = R_{\text{actual}} - E[R_i]\).
 
-With the given numbers:
 \[
 E[R_i] = 0.03 + 1.2(0.09-0.03) = 0.102 \; (=10.2\%)\, .
 \]
@@ -31,7 +28,7 @@ E[R_i] = 0.03 + 1.2(0.09-0.03) = 0.102 \; (=10.2\%)\, .
 \alpha = 0.08 - 0.102 = -0.022 \; (= -2.2\%)\, .
 \]
 
-# Code Verification and SML Plot
+# Code and Plot
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 6.5, fig.height = 4.2)
@@ -53,7 +50,7 @@ cat(sprintf("Actual return: %.2f%%\n", 100*Ract))
 cat(sprintf("Performance gap (Actual - CAPM): %.2f%%\n", 100*(Ract - Ecapm)))
 cat(sprintf("Alpha: %.2f%%\n", 100*alpha))
 
-if (alpha > 0) message("Over-performs (above SML).") else message("Under-performs (below SML).")
+if (alpha > 0) print("Over-performs (above SML).") else print("Under-performs (below SML).")
 ```
 
 ```{r sml-plot}
@@ -73,7 +70,7 @@ legend("topleft",
        col = c("black", "blue", "red"), bty = "n")
 ```
 
-# Brief Answers
-1) **Expected return (CAPM): 10.2\%**.  
-2) Actual return 8\% is **below** 10.2\% → **under-performs by 2.2 p.p.**  
-3) **Alpha = −2.2\%** (point lies **below** the SML at \(\beta=1.2\)).
+# Answers
+1) Expected return (CAPM): 10.2\%.
+2) Actual return 8\% is below 10.2\% → under-performs by 2.2 percentage points
+3) Alpha = −2.2\% (point lies below** the SML at \(\beta=1.2\)).
