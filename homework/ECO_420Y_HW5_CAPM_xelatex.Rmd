@@ -1,0 +1,79 @@
+---
+title: "ECO 420Y — HW5 (CAPM & SML)"
+author: "Joe White"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    toc: false
+    number_sections: false
+fontsize: 11pt
+geometry: margin=1in
+---
+
+# Problem
+**Given:** risk-free rate \(r_f=3\%\), market expected return \(E[R_m]=9\%\), stock beta \(\beta=1.2\).  
+1) Compute the expected return by CAPM.  
+2) If actual return is 8\%, does it under/over-perform? By how much?  
+3) Compute alpha and **plot/label** the stock on the SML.
+
+---
+
+# Hand Calculation (formulas)
+CAPM: \(E[R_i]=r_f+\beta\,(E[R_m]-r_f)\).  
+Alpha: \(\alpha = R_{\text{actual}} - E[R_i]\).
+
+With the given numbers:
+\[
+E[R_i] = 0.03 + 1.2(0.09-0.03) = 0.102 \; (=10.2\%)\, .
+\]
+\[
+\alpha = 0.08 - 0.102 = -0.022 \; (= -2.2\%)\, .
+\]
+
+# Code Verification and SML Plot
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE, fig.width = 6.5, fig.height = 4.2)
+```
+
+```{r capm-calcs}
+# Inputs
+rf   <- 0.03
+Rm   <- 0.09
+beta <- 1.2
+Ract <- 0.08
+
+# CAPM expected return and alpha
+Ecapm <- rf + beta * (Rm - rf)
+alpha <- Ract - Ecapm
+
+cat(sprintf("CAPM expected return: %.2f%%\n", 100*Ecapm))
+cat(sprintf("Actual return: %.2f%%\n", 100*Ract))
+cat(sprintf("Performance gap (Actual - CAPM): %.2f%%\n", 100*(Ract - Ecapm)))
+cat(sprintf("Alpha: %.2f%%\n", 100*alpha))
+
+if (alpha > 0) message("Over-performs (above SML).") else message("Under-performs (below SML).")
+```
+
+```{r sml-plot}
+# Security Market Line plot
+plot(c(0, 1.6), c(rf, rf + 1.6*(Rm - rf)), type = "n",
+     xlab = expression(beta), ylab = "Expected return",
+     main = "Security Market Line (SML)")
+abline(a = rf, b = (Rm - rf))                 # SML
+points(0, rf, pch = 19)                       # risk-free
+points(1, Rm, pch = 19)                       # market
+points(beta, Ecapm, pch = 19, col = "blue")   # CAPM-expected for the stock
+points(beta, Ract,  pch = 19, col = "red")    # actual point
+segments(beta, Ecapm, beta, Ract, col = "red", lty = 2)  # alpha gap
+legend("topleft",
+       legend = c("SML", "CAPM-expected", "Actual (alpha)"),
+       lty = c(1, NA, NA), pch = c(NA, 19, 19),
+       col = c("black", "blue", "red"), bty = "n")
+```
+
+# Brief Answers
+1) **Expected return (CAPM): 10.2\%**.  
+2) Actual return 8\% is **below** 10.2\% → **under-performs by 2.2 p.p.**  
+3) **Alpha = −2.2\%** (point lies **below** the SML at \(\beta=1.2\)).
